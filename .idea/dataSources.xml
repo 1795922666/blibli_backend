@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+    <data-source source="LOCAL" name="blibli@localhost" uuid="c3b6888d-0592-481f-804c-2097f7f71352">
+      <driver-ref>mysql_aurora_aws</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>software.aws.rds.jdbc.mysql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql:aws://localhost:3306/blibli</jdbc-url>
+      <jdbc-additional-properties>
+        <property name="com.intellij.clouds.kubernetes.db.host.port" />
+        <property name="com.intellij.clouds.kubernetes.db.enabled" value="false" />
+        <property name="com.intellij.clouds.kubernetes.db.resource.type" value="Deployment" />
+        <property name="com.intellij.clouds.kubernetes.db.container.port" />
+      </jdbc-additional-properties>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+  </component>
+</project>
