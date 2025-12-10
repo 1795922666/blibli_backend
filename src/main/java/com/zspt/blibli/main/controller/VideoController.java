@@ -1,21 +1,27 @@
 package com.zspt.blibli.main.controller;
+import cn.dev33.satoken.stp.StpUtil;
 import com.zspt.blibli.common.vo.Result;
 import com.zspt.blibli.main.controller.requestParam.ReplyParam;
 import com.zspt.blibli.main.controller.requestParam.VideosParam;
+import com.zspt.blibli.main.controller.vo.VideoList;
 import com.zspt.blibli.main.enums.exceptionenu.AppExceptionCodeMsg;
 import com.zspt.blibli.main.exception.Appexception;
 import com.zspt.blibli.main.server.impl.VideosServerImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("video")
 public class VideoController {
+    private static final Logger log = LoggerFactory.getLogger(VideoController.class);
     @Resource
    private VideosServerImpl  videoServerImpl;
 
@@ -120,6 +126,7 @@ public class VideoController {
     }
     }
 
+    @Operation(summary = "评论")
     @PutMapping("comment")
     public Result comment(@RequestParam("videoId") String videoId,@RequestParam("content") String content) {
         try {
@@ -129,10 +136,23 @@ public class VideoController {
         }
     }
 
+    @Operation(summary = "回复")
     @PutMapping("reply")
-    public Result reply(@RequestBody ReplyParam replyParam) {
-        return  videoServerImpl.reply(replyParam);
+        public Result reply(@RequestBody ReplyParam replyParam) {
+        try {
+            return  videoServerImpl.reply(replyParam);
+
+        }catch (NumberFormatException e) {
+            throw new Appexception(AppExceptionCodeMsg.VIDEO_NOT_FOUND);
+        }
     }
+
+    /**
+     * 获取评论
+     * @param videoId
+     * @param lastTime
+     * @return
+     */
     @GetMapping("getNewComment")
     public Result getComment(@RequestParam("videoId") String videoId, @RequestParam(value = "lastTime", required = false) String lastTime) {
         try {
@@ -145,6 +165,43 @@ public class VideoController {
         return  videoServerImpl.getComment(vid,10,time);
         }catch (NumberFormatException e) {
             throw new Appexception(AppExceptionCodeMsg.VIDEO_NOT_FOUND);
+        }
+
+    }
+
+    /**
+     * 获取评论下所有二级回复
+     * @param commentId
+     * @param lastTime
+     * @return
+     */
+    @GetMapping("getCommentReply")
+    public Result commentReply(@RequestParam("commentId") String commentId, @RequestParam(value = "lastTime", required = false) String lastTime){
+        try {
+            Long vid = Long.valueOf(commentId);
+            if (lastTime == null) {
+                LocalDateTime time=LocalDateTime.now();
+                return  videoServerImpl.getCommentReply(vid,10,time);
+            }
+            LocalDateTime time=LocalDateTime.parse(lastTime);
+            return  videoServerImpl.getCommentReply(vid,10,time);
+        }catch (NumberFormatException e) {
+            throw new Appexception(AppExceptionCodeMsg.VIDEO_NOT_FOUND);
+        }
+    }
+
+    /**
+     * 获取稿件
+     * @return
+     */
+    @GetMapping("contribution")
+    public Result getContribution() {
+        try {
+            long loginUserId = StpUtil.getLoginIdAsLong();
+            List<VideoList> videoList = videoServerImpl.getBaseMapper().getVideoList(loginUserId);
+            return Result.success(videoList);
+        }catch (Exception e) {
+            throw new Appexception(AppExceptionCodeMsg.USER_NOT_FOUND);
         }
 
     }

@@ -14,7 +14,11 @@ public class CommentListVo {
 
     private String content;
 
+    private int pCommentId;
+
     private int likeCount;
+
+    private int replyCount;
 
     private boolean isLike;
 

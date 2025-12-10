@@ -14,6 +14,9 @@ public class SystemConstants {
     public static final int DEFAULT_PAGE_SIZE = 5;
 
     public static final int MAX_PAGE_SIZE = 10;
+//    头像图片大小限制
+    public static long  MAX_AVATAR_SIZE=5 * 1024 * 1024;
+
 
     public static final ExecutorService CACHE_REBuILD_EXECUTOR = Executors.newFixedThreadPool(10);
 //    redis的文件上传key
@@ -27,5 +30,4 @@ public static final String REDIS_FILE_UPLOAD = "bli:file:upload:";
     public static final String REDIS_USER_FOLLOW = "bli:user:%s:follow";
     public static final String REDIS_USER_COLLECT = "bli:user:%s:collect";
     public static final String REDIS_USER_INFO = "bli:user:%s:info";
-
 }

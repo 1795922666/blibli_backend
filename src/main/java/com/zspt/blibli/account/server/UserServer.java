@@ -5,6 +5,7 @@ import com.zspt.blibli.account.controller.vo.UserInfoVo;
 import com.zspt.blibli.account.mapper.domin.User;
 import com.zspt.blibli.common.vo.Result;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
@@ -17,7 +18,9 @@ public interface UserServer  extends IService<User> {
 
     Result chagePassword(Long id ,String oldPassword,String newPassword);
 
-    ResponseEntity getAvatar(Long id) throws IOException;
+    ResponseEntity getAvatar(String path) throws IOException;
+
+    Result uploadAvatar(MultipartFile file) throws IOException;
 
     UserInfoVo getUserInfo(Long id);
 

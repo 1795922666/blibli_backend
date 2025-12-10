@@ -5,6 +5,7 @@ import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +23,7 @@ import com.zspt.blibli.main.controller.requestParam.VideosParam;
 import com.zspt.blibli.main.controller.vo.*;
 import com.zspt.blibli.main.controller.vo.comment.CommentListVo;
 import com.zspt.blibli.main.controller.vo.comment.CommentUserInfo;
+import com.zspt.blibli.main.controller.vo.comment.Reply;
 import com.zspt.blibli.main.dto.VideosDTO;
 import com.zspt.blibli.main.enums.exceptionenu.AppExceptionCodeMsg;
 import com.zspt.blibli.main.exception.Appexception;
@@ -91,13 +93,12 @@ public class VideosServerImpl extends ServiceImpl<VideosMapper, Videos> implemen
     @Resource
     private CommentMapper commentMapper;
 
+
     @Resource
     private CommentReplyMapper commentReplyMapper;
 
     @Override
     public Result addVideos(VideosParam videosParam) throws IOException {
-        SystemConstants.CACHE_REBuILD_EXECUTOR.submit(()->{
-       try {
         long currentUserId = StpUtil.getLoginIdAsLong();
         String fileName = FileUtils.generateFinalFilename(videosParam.getCover().getOriginalFilename());
         Path filePath = Paths.get(filePathConfig.getCoverPath(), fileName);
@@ -117,14 +118,15 @@ public class VideosServerImpl extends ServiceImpl<VideosMapper, Videos> implemen
             boolean is = save(videos);
             if (!is) throw new Appexception(AppExceptionCodeMsg.VIDEO_UPLOAD_FAILED);
 //            进行视频合并
-            fileServerImpl.mergeChunks(videosParam.getUid(),videos.getVideoId());
-        }catch (Exception e){
-            throw  new RuntimeException(e);
+          SystemConstants.CACHE_REBuILD_EXECUTOR.submit(()->{
+              try {
+                  fileServerImpl.mergeChunks(videosParam.getUid(),videos.getVideoId());
+                }catch (Exception e){
+                throw  new RuntimeException(e);
+            }
+            });
+            return  Result.success(null);
         }
-        });
-        return  Result.success(null);
-
-    }
 
     @Override
     public Result getCategories() {
@@ -176,8 +178,8 @@ public class VideosServerImpl extends ServiceImpl<VideosMapper, Videos> implemen
             stringRedisTemplate.opsForValue().set(
                     SystemConstants.REDIS_VIDEO_RECOMMEND,
                     jsonStr,
-                    30, // 缓存有效期
-                    TimeUnit.MINUTES
+                    3, // 缓存有效期
+                    TimeUnit.SECONDS
             );
         }
 
@@ -201,11 +203,13 @@ public class VideosServerImpl extends ServiceImpl<VideosMapper, Videos> implemen
         if (!Files.exists(video)) {
             throw new Appexception(AppExceptionCodeMsg.FILE_NOT_FOUND);
         }
+
         Path resolve = video.resolve("index.m3u8");
-        // 3. 准备文件资源
+        // 3. 准备文件资源w
         File file = resolve.toFile();
         FileSystemResource resource = new FileSystemResource(file);
         // 4. 设置HTTP响应头
+        System.out.println("1111111111111");
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("application/vnd.apple.mpegurl")); // M3U8标准MIME类型
         headers.setContentLength(file.length());
@@ -555,24 +559,41 @@ public class VideosServerImpl extends ServiceImpl<VideosMapper, Videos> implemen
         long loginIdAsLong = StpUtil.getLoginIdAsLong();
         long commentId = Long.parseLong(replyParam.getCommentId());
         long replyUserId = Long.parseLong(replyParam.getReplyUserId());
-        Comment comment = commentMapper.selectById(commentId);
-        if(comment==null)throw new Appexception(AppExceptionCodeMsg.COMMENT_NOT_FOUND);
-//        评论不存在
+        long pComment=Long.parseLong(replyParam.getPCommentId());
+        log.info("{}",replyParam);
+        // 一级评论回复
+        boolean commentExists = Optional.ofNullable(commentMapper.selectById(commentId)).isPresent()
+                || Optional.ofNullable(commentReplyMapper.selectById(commentId)).isPresent();
+
+        if (!commentExists) {
+            throw new Appexception(AppExceptionCodeMsg.COMMENT_NOT_FOUND);
+        }
+
         User byId = userServerImpl.getById(replyUserId);
-//        评论用户不存在
+        User yId=userServerImpl.getById(loginIdAsLong);
+//        被评论用户不存在
         if(byId==null)throw new Appexception(AppExceptionCodeMsg.COMMENT_USER_NOT_FOUND);
 
         CommentReply commentReply = new CommentReply();
+
 //       回复用户
         commentReply.setUserId(loginIdAsLong);
+//        回复用户昵称
+        commentReply.setNickName(yId.getNickName());
 //         被回复用户
         commentReply.setReplyUserId(replyUserId);
+        // 被回复昵称
+        commentReply.setReplyNickName(byId.getNickName());
 //        被回复评论
         commentReply.setCommentId(commentId);
-        commentReply.setContent(replyParam.getContent());
+        commentReply.setPCommentId(pComment);
+        commentReply.setReplyContent(replyParam.getContent());
         commentReply.setStatus((byte) 1);
-
         commentReplyMapper.insert(commentReply);
+        LambdaUpdateWrapper<Comment> updateWrapper = new LambdaUpdateWrapper<Comment>()
+                .eq(Comment::getId, pComment)
+                .setSql("reply_count = reply_count + 1");
+            commentMapper.update(updateWrapper);
         return Result.success(null);
     }
 
@@ -586,6 +607,10 @@ public class VideosServerImpl extends ServiceImpl<VideosMapper, Videos> implemen
         return Result.success(        new PageResult<>(comments, total, pageSize));
     }
 
-
-
+    @Override
+    public Result getCommentReply(Long commentId, int pageSize, LocalDateTime lastTime) {
+            List<Reply> replys=commentReplyMapper.getCommentReply(commentId,pageSize,lastTime);
+            log.info("{}",replys);
+            return Result.success(replys);
+    }
 }

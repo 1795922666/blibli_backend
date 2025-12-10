@@ -12,4 +12,5 @@ import java.util.List;
 @Mapper
 public interface CommentMapper extends BaseMapper<Comment> {
    List<CommentListVo> getComment(@Param("videoId") Long videoId, @Param("lastTime") LocalDateTime lastTime, @Param("pageSize") int pageSize,@Param("replyCount") int replyCount);
+
 }

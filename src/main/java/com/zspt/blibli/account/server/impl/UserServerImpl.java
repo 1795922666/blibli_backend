@@ -34,11 +34,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.rmi.AccessException;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -59,13 +61,21 @@ public class UserServerImpl extends ServiceImpl<UserMapper, User> implements Use
     @Value("${file.default-avatar}")
     private String avatar;
 
+
+
     @Override
     public Result login(String username, String password) {
         PasswordEncoder passwordEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
         User user = lambdaQuery().eq(User::getUserName, username).one();
+//        判断用户状态
+        if(  user.getStatus() == 0)throw  new Appexception(AppExceptionCodeMsg.USER_STATUS_CLOSURE);
+        if(  user.getStatus() == 2)throw  new Appexception(AppExceptionCodeMsg.USER_NOT_FOUND);
         if(user == null)throw  new Appexception(AppExceptionCodeMsg.AUTH_FAILED);
+//        密码判断
         boolean matches = passwordEncoder.matches(password, user.getPassword());
         if(!matches)throw  new Appexception(AppExceptionCodeMsg.AUTH_FAILED);
+
+
         StpUtil.login(user.getId());
         return Result.success("登陆成功",null);
     }
@@ -118,12 +128,12 @@ public class UserServerImpl extends ServiceImpl<UserMapper, User> implements Use
 
     /**
      * 获取用户头像
-     * @param id
+     * @param path
      * @return
      */
     @Override
-    public ResponseEntity  getAvatar(Long id) throws IOException {
-        Path avatar = FileUtils.buildSafePath(filePathConfig.getAvatarPath(), id+".png");
+    public ResponseEntity  getAvatar(String path) throws IOException {
+        Path avatar = FileUtils.buildSafePath(filePathConfig.getAvatarPath(), path);
         if(!Files.exists(avatar)) {
             avatar=FileUtils.buildSafePath( filePathConfig.getAvatarPath(), avatar.toString());
         }
@@ -132,6 +142,33 @@ public class UserServerImpl extends ServiceImpl<UserMapper, User> implements Use
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, Files.probeContentType(avatar))
                 .body(resource);
+    }
+
+    @Override
+    public Result uploadAvatar(MultipartFile file) throws IOException {
+        if (file.isEmpty())  throw  new Appexception(AppExceptionCodeMsg.FILE_EMPTY);
+
+        // 2. 校验文件大小
+        if (file.getSize() >  SystemConstants.MAX_AVATAR_SIZE) throw  new Appexception(AppExceptionCodeMsg.FILE_EMPTY);
+
+        // 3. 校验文件格式（仅允许jpg/png/webp）
+        String originalFilename = file.getOriginalFilename();
+        // 获取文件后缀（如.jpg）
+        String suffix = originalFilename.substring(originalFilename.lastIndexOf("."));
+        if (!suffix.equalsIgnoreCase(".jpg") && !suffix.equalsIgnoreCase(".png") ) {
+            throw  new Appexception(AppExceptionCodeMsg.FILE_EMPTY);
+        }
+//        生成唯一文件名
+        String fileName = UUID.randomUUID() + suffix;
+        File destFile = new File(filePathConfig.getAvatarPath()+ "/"+fileName);
+        try {
+            // 核心方法：将上传文件写入目标路径
+            file.transferTo(destFile);
+            // 6. 返回头像访问URL
+            return Result.success(fileName);
+        } catch (Exception e) {
+            throw new Appexception(AppExceptionCodeMsg.DATA_CONFLICT);
+        }
     }
 
     /**

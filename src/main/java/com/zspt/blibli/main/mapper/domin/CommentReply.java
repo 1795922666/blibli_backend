@@ -1,5 +1,7 @@
 package com.zspt.blibli.main.mapper.domin;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -7,8 +9,10 @@ import java.time.LocalDateTime;
 @Data
 @TableName("bli_comment_reply")
 public class CommentReply {
-    private Long id;
+    @TableId
+    private Long replyId;
 
+    @TableField(value = "pComment_id")
     private  Long pCommentId;
 
     private Long commentId;
@@ -21,7 +25,7 @@ public class CommentReply {
 
     private String replyNickName;
 
-    private String content;
+    private String replyContent;
 
     private int likeCount;
 

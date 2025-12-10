@@ -14,4 +14,6 @@ public interface VideosMapper extends BaseMapper<Videos> {
      List<VideoList> recommend();
 
      VideoInfo getVideosInfo(@Param("videoId") Long videoId);
+
+     List<VideoList> getVideoList(@Param("userId") Long userId);
 }

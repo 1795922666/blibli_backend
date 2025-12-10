@@ -2,6 +2,8 @@ package com.zspt.blibli.main.controller.vo.comment;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 public class Reply {
 
@@ -20,5 +22,7 @@ public class Reply {
     private String replyNickName;
 
     private String replyContent;
+
+    private LocalDateTime replyUpdateTime;
     
 }

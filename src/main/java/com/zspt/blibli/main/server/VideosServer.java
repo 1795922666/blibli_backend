@@ -40,4 +40,6 @@ public interface VideosServer extends IService<Videos> {
     Result reply(ReplyParam replyParam);
 
     Result getComment(Long videoId, int pageSize, LocalDateTime lastTime);
+
+    Result getCommentReply(Long commentId, int pageSize, LocalDateTime lastTime);
 }

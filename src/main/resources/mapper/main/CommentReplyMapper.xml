@@ -3,5 +3,23 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zspt.blibli.main.mapper.CommentReplyMapper">
-
+    <select id="getCommentReply" resultType="com.zspt.blibli.main.controller.vo.comment.Reply">
+        SELECT
+        r.reply_id AS reply_id,
+        r.pComment_id,
+        r.comment_id AS comment_id,
+        r.user_id AS user_id,     -- 回复用户ID
+        r.nick_name AS nick_name, -- 回复用户昵称
+        r.reply_user_id AS reply_user_id, -- 被回复用户ID
+        r.reply_nick_name AS reply_nick_name, -- 被回复用户昵称
+        r.reply_content AS reply_content,
+        r.update_time AS reply_update_time
+        FROM bli_comment_reply r
+        WHERE pComment_id = #{commentId}
+        <if test="lastTime != null">
+            AND update_time &lt; #{lastTime}
+        </if>
+        ORDER BY update_time DESC
+        LIMIT #{pageSize}
+    </select>
 </mapper>

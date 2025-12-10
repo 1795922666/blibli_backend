@@ -13,8 +13,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
 
 @RestController
@@ -22,6 +25,7 @@ import java.io.IOException;
 @Slf4j
 @Tag(name="ClientUM", description = "用户端用户管理")
 public class UserController {
+
     @Resource
     private UserServerImpl userServer;
 
@@ -70,12 +74,17 @@ public class UserController {
 
     @Operation(summary = "获取用户头像")
     @GetMapping("/getAvatara")
-    public ResponseEntity getAvatara(@RequestParam String id) throws IOException {
+    public ResponseEntity getAvatara(@RequestParam String path) throws IOException {
         try {
-            return   userServer.getAvatar(Long.parseLong(id));
+            return   userServer.getAvatar(path);
         } catch (NumberFormatException e) {
             throw new Appexception(AppExceptionCodeMsg.USER_AVATAR_NOT_FOUND);
         }
+    }
+    @Operation(summary = "头像上传")
+    @PostMapping("/uploadAva")
+    public Result upAvatar(@RequestParam("file") MultipartFile file) throws IOException {
+        return userServer.uploadAvatar(file);
     }
     @Operation(summary = "根据用户id获取用户信息")
     @GetMapping("/{id}/userspace")

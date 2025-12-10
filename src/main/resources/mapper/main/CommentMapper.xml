@@ -5,9 +5,10 @@
 <mapper namespace="com.zspt.blibli.main.mapper.CommentMapper">
     <resultMap id="commentResultMap" type="com.zspt.blibli.main.controller.vo.comment.CommentListVo">
         <id property="id" column="id"/> <!-- 评论ID -->
+        <result property="pCommentId" column="pComment_id"/>
         <result property="content" column="content"/>
         <result property="likeCount" column="like_count"/>
-
+        <result property="replyCount" column="reply_count"/>
         <!-- 用户信息关联 -->
         <association property="userInfo" javaType="com.zspt.blibli.main.controller.vo.comment.CommentUserInfo">
             <id property="id" column="user_id"/>       <!-- 用户ID -->
@@ -18,20 +19,24 @@
         <!-- 回复列表 -->
         <collection property="reply" ofType="com.zspt.blibli.main.controller.vo.comment.Reply" javaType="java.util.ArrayList">
             <id property="replyId" column="reply_id"/>
-            <result property="pCommentId" column="pComment_id"/>
+            <result property="pCommentId" column="spComment_id"/>
             <result property="commentId" column="comment_id"/>
             <result property="userId" column="reply_user_id"/>
             <result property="nickName" column="reply_nick_name"/>
             <result property="replyUserId" column="reply_to_user_id"/>
             <result property="replyNickName" column="reply_to_nick_name"/>
             <result property="replyContent" column="reply_content"/>
+            <result property="replyUpdateTime" column="reply_update_time"/>
         </collection>
     </resultMap>
+
     <select id="getComment" resultMap="commentResultMap">
         SELECT
         c.id AS id,             -- 评论ID
+        c.pComment_id AS  pComment_id,
         c.content AS content,
         c.like_count AS like_count,
+        c.reply_count AS  reply_count,
         c.create_time AS create_time,
 
         -- 用户信息列（添加 u_ 前缀）
@@ -40,14 +45,14 @@
 
         -- 回复列（添加 r_ 前缀）
         r.reply_id AS reply_id,
-        r.pComment_id,
+        r.pComment_id As spComment_id,
         r.comment_id AS comment_id,
         r.user_id AS reply_user_id,     -- 回复用户ID
         r.nick_name AS reply_nick_name, -- 回复用户昵称
         r.reply_user_id AS reply_to_user_id, -- 被回复用户ID
         r.reply_nick_name AS reply_to_nick_name, -- 被回复用户昵称
         r.reply_content AS reply_content,
-        r.create_time AS reply_create_time
+        r.update_time AS reply_update_time
         FROM bli_comment c
         LEFT JOIN (
         SELECT
@@ -62,4 +67,5 @@
         ORDER BY c.create_time DESC, c.id DESC
         LIMIT #{pageSize}
     </select>
+
 </mapper>

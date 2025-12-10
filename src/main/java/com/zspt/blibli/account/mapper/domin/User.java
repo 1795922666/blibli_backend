@@ -2,7 +2,6 @@ package com.zspt.blibli.account.mapper.domin;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
@@ -31,4 +30,6 @@ public class User {
     private Integer coin;
 
     private String phone;
+    //0禁用 1启用
+    private byte status;
 }
