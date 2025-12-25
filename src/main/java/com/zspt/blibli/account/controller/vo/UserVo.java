@@ -13,8 +13,4 @@ public class UserVo {
     private Long id;
     @Schema(name = "nickName" ,description = "用户昵称")
     private String nickName;
-    @Schema(name = "avatar" ,description = "用户头像")
-    private String avatar;
-    
-
 }

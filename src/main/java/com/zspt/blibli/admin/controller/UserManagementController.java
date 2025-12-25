@@ -27,7 +27,7 @@ public class UserManagementController {
         }
 
         @Operation(summary = "根据id获取用户信息")
-        @GetMapping("/bIdUserInfo")
+        @GetMapping("/bIdUserInfo/{id}")
         public Result bIdUserInfo(@PathVariable  String id) {
             return Result.success(userManagementServer.ActualizeBIdUserInfo(Long.parseLong(id)));
         }

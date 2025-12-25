@@ -1,4 +1,4 @@
-package com.zspt.blibli.admin.controller.vo;
+package com.zspt.blibli.admin.controller.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

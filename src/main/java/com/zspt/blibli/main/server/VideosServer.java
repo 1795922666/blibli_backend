@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Date;
 
 public interface VideosServer extends IService<Videos> {
     Result addVideos( VideosParam videosParam) throws IOException;
@@ -42,4 +43,6 @@ public interface VideosServer extends IService<Videos> {
     Result getComment(Long videoId, int pageSize, LocalDateTime lastTime);
 
     Result getCommentReply(Long commentId, int pageSize, LocalDateTime lastTime);
+
+    long countNewVideosByTimeRange(Date startTime, Date endTime);
 }

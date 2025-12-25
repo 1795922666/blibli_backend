@@ -3,8 +3,10 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import cn.hutool.system.UserInfo;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,7 +41,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.rmi.AccessException;
 import java.time.Instant;
 import java.util.*;
@@ -133,7 +137,7 @@ public class UserServerImpl extends ServiceImpl<UserMapper, User> implements Use
      */
     @Override
     public ResponseEntity  getAvatar(String path) throws IOException {
-        Path avatar = FileUtils.buildSafePath(filePathConfig.getAvatarPath(), path);
+        Path avatar = FileUtils.buildSafePath(filePathConfig.getAvatarPath(), path+".png");
         if(!Files.exists(avatar)) {
             avatar=FileUtils.buildSafePath( filePathConfig.getAvatarPath(), avatar.toString());
         }
@@ -144,6 +148,8 @@ public class UserServerImpl extends ServiceImpl<UserMapper, User> implements Use
                 .body(resource);
     }
 
+
+//上传头像
     @Override
     public Result uploadAvatar(MultipartFile file) throws IOException {
         if (file.isEmpty())  throw  new Appexception(AppExceptionCodeMsg.FILE_EMPTY);
@@ -162,7 +168,7 @@ public class UserServerImpl extends ServiceImpl<UserMapper, User> implements Use
         String fileName = UUID.randomUUID() + suffix;
         File destFile = new File(filePathConfig.getAvatarPath()+ "/"+fileName);
         try {
-            // 核心方法：将上传文件写入目标路径
+            // 将上传文件写入目标路径
             file.transferTo(destFile);
             // 6. 返回头像访问URL
             return Result.success(fileName);
@@ -171,6 +177,95 @@ public class UserServerImpl extends ServiceImpl<UserMapper, User> implements Use
         }
     }
 
+//    修改头像
+    /**
+     * 更新用户头像
+     * @param id 用户ID（如 1001）
+     * @param path 上传后的临时头像路径（如 /static/avatars/tmp_89757.png）
+     * @return 统一返回结果
+     */
+    public String updateAvatar( String id, String path) {
+        // ========== 1. 前置校验（空值/非法参数） ==========
+        if (StrUtil.isBlank(id) || StrUtil.isBlank(path)) {
+            throw new Appexception(AppExceptionCodeMsg.NOT_NULL);
+        }
+
+        Long userId = Long.valueOf(id);
+        // ========== 2. 校验用户是否存在 ==========
+        User user = getById(userId);
+        if (user == null) {
+            throw new Appexception(AppExceptionCodeMsg.USER_NOT_FOUND);
+        }
+
+        if(path.equals(user.getAvatar()))return user.getAvatar();
+        // ========== 3. 构建路径（新头像/旧头像） ==========
+        // 3.1 提取新头像后缀（包含 .，如 .png）
+        int lastDotIndex = path.lastIndexOf(".");
+        if (lastDotIndex == -1 || lastDotIndex == path.length() - 1) {
+            throw new Appexception(AppExceptionCodeMsg.FILE_TYPE_INVALID); // 无有效后缀
+        }
+        String suffix = path.substring(lastDotIndex); // 如 .png
+
+        // 3.2 构建新头像最终路径（用户ID+后缀，如 /static/avatars/1001.png）
+        String newAvatarFileName = userId + suffix;
+        Path newAvatarPath = FileUtils.buildSafePath(filePathConfig.getAvatarPath(), newAvatarFileName);
+
+        // 3.3 校验新头像路径是否已存在（避免覆盖）
+        if (Files.exists(newAvatarPath)) {
+            throw new Appexception(AppExceptionCodeMsg.FILE_EXISTS);
+        }
+
+        // 3.4 构建上传的临时头像路径（原始路径）
+        Path tempAvatarPath = FileUtils.buildSafePath(filePathConfig.getAvatarPath(), path);
+        if (!Files.exists(tempAvatarPath)) {
+            throw new Appexception(AppExceptionCodeMsg.NOT_NULL); // 临时文件不存在
+        }
+
+        // ========== 4. 删除旧头像 ==========
+        try {
+            if (StrUtil.isNotBlank(user.getAvatar())) { // 旧头像路径非空才删除
+                Path oldAvatarPath = FileUtils.buildSafePath(filePathConfig.getAvatarPath(), user.getAvatar());
+                Files.deleteIfExists(oldAvatarPath); // 推荐用 deleteIfExists，无需捕获 NoSuchFileException
+                log.info("删除用户旧头像成功，userId={}, oldPath={}", userId, oldAvatarPath);
+            }
+        } catch (Exception e) {
+            // 非致命异常：记录日志，但不中断流程（避免因旧头像删除失败导致新头像更新失败）
+            log.error("删除用户旧头像失败，userId={}", userId, e);
+            // 可选：抛自定义异常，让前端提示（根据业务决定）
+            // throw new AppException(AppExceptionCodeMsg.DELETE_OLD_AVATAR_FAILED);
+        }
+
+        // ========== 5. 重命名临时头像为最终路径（核心逻辑） ==========
+        try {
+            // 移动+重命名临时文件到最终路径（原子操作，支持覆盖，跨盘符兼容）
+            Files.move(
+                    tempAvatarPath,
+                    newAvatarPath,
+                    StandardCopyOption.ATOMIC_MOVE, // 原子操作，防文件损坏
+                    StandardCopyOption.REPLACE_EXISTING // 兜底：即使偶发存在也覆盖（根据业务可选）
+            );
+            log.info("头像重命名成功，userId={}, tempPath={} → newPath={}", userId, tempAvatarPath, newAvatarPath);
+        } catch (Exception e) {
+            log.error("头像重命名失败，userId={}", userId, e);
+            throw new Appexception(AppExceptionCodeMsg.FILE_UPLOAD_FAILED);
+        }
+
+        // ========== 6. 更新数据库 ==========
+        user.setAvatar(newAvatarFileName);
+        boolean updateSuccess = updateById(user);
+        if (!updateSuccess) {
+            // 数据库更新失败：回滚文件操作（删除刚重命名的新头像）
+            try {
+                Files.deleteIfExists(newAvatarPath);
+            } catch (Exception ex) {
+                log.error("回滚新头像文件失败，userId={}", userId, ex);
+            }
+            throw new Appexception(AppExceptionCodeMsg.FILE_UPLOAD_FAILED);
+        }
+
+        // ========== 7. 返回结果 ==========
+        return newAvatarFileName;
+    }
     /**
      * 根据id查询用户信息
      * @param id
@@ -311,6 +406,13 @@ public class UserServerImpl extends ServiceImpl<UserMapper, User> implements Use
         return Result.success(users);
     }
 
+    @Override
+    public long countNewUsersByTimeRange(Date startTime, Date endTime) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.between("create_time", startTime, endTime)
+                .eq("status", 1);
+        return this.baseMapper.selectCount(queryWrapper);
+    }
 
 
 }

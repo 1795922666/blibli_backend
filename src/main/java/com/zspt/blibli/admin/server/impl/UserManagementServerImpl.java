@@ -9,9 +9,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zspt.blibli.account.mapper.UserMapper;
 import com.zspt.blibli.account.mapper.domin.User;
+import com.zspt.blibli.account.server.impl.UserServerImpl;
 import com.zspt.blibli.admin.controller.requestParam.AddUserParam;
 import com.zspt.blibli.admin.controller.requestParam.UpdateUserParam;
-import com.zspt.blibli.admin.controller.vo.UserDTO;
+import com.zspt.blibli.admin.controller.dto.UserDTO;
 import com.zspt.blibli.admin.server.UserManagementServer;
 import com.zspt.blibli.common.utils.SystemConstants;
 import com.zspt.blibli.common.vo.Result;
@@ -24,14 +25,18 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 
 @Service
 @Slf4j
 public class UserManagementServerImpl extends ServiceImpl<UserMapper, User> implements UserManagementServer {
+    private final UserServerImpl userServerImpl;
     @Value("${file.default-avatar}")
     private String avatar;
+
+    public UserManagementServerImpl(UserServerImpl userServerImpl) {
+        this.userServerImpl = userServerImpl;
+    }
 
     @Override
     public IPage<UserDTO> ActualizeUserInfo(Integer pageNum, Integer pageSize) {
@@ -53,7 +58,6 @@ public class UserManagementServerImpl extends ServiceImpl<UserMapper, User> impl
         User byId = this.getById(id);
         UserDTO byDto = new UserDTO();
         BeanUtils.copyProperties(byId,byDto);
-
         return byDto;
     }
 
@@ -95,6 +99,7 @@ public class UserManagementServerImpl extends ServiceImpl<UserMapper, User> impl
         User byUser = getById(id);
         if(byUser==null)throw  new Appexception(AppExceptionCodeMsg.USER_NOT_FOUND);
 //      2.重复验证
+
         if(!ProvingUser(id,user.getUserName(),user.getPhone()))throw  new Appexception(AppExceptionCodeMsg.USER_ALREADY_EXISTS);
 //密码加密
         if(StrUtil.isNotBlank(user.getPassword())){
@@ -103,6 +108,9 @@ public class UserManagementServerImpl extends ServiceImpl<UserMapper, User> impl
             user.setPassword(encode);
         }
 
+
+        String avatarUrl = userServerImpl.updateAvatar(user.getId(), user.getAvatar());
+        user.setAvatar(avatarUrl);
 //        3.序列化
         CopyOptions copyOptions = CopyOptions.create()
                 .setIgnoreNullValue(true)     // 忽略null值
@@ -189,7 +197,6 @@ public class UserManagementServerImpl extends ServiceImpl<UserMapper, User> impl
 
 //验证用户名/手机号是否重复
     public boolean ProvingUser(Long id,String userName,String phone ){
-        if(id==0)return false;
         User one = lambdaQuery().eq(User::getUserName, userName).ne(User::getId, id).one();
         User two = lambdaQuery().eq(User::getPhone, phone).ne(User::getId, id).one();
         return one == null && two == null;

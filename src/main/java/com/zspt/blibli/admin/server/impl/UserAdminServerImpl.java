@@ -54,5 +54,4 @@ public class UserAdminServerImpl extends ServiceImpl<UserAdminMapper, SysAmin> i
         return Result.success("登陆成功",null);
     }
 
-
 }

@@ -114,4 +114,5 @@ public class UserController {
             throw new Appexception(AppExceptionCodeMsg.USER_NOT_FOUND);
         }
     }
+
 }

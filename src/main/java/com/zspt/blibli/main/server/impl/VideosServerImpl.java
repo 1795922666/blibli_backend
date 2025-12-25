@@ -561,7 +561,7 @@ public class VideosServerImpl extends ServiceImpl<VideosMapper, Videos> implemen
         long replyUserId = Long.parseLong(replyParam.getReplyUserId());
         long pComment=Long.parseLong(replyParam.getPCommentId());
         log.info("{}",replyParam);
-        // 一级评论回复
+        // 一级评论回复查询是否存在
         boolean commentExists = Optional.ofNullable(commentMapper.selectById(commentId)).isPresent()
                 || Optional.ofNullable(commentReplyMapper.selectById(commentId)).isPresent();
 
@@ -604,7 +604,7 @@ public class VideosServerImpl extends ServiceImpl<VideosMapper, Videos> implemen
                 .eq("video_id", videoId);
 //        总数据量
         Long total = commentMapper.selectCount(queryWrapper);
-        return Result.success(        new PageResult<>(comments, total, pageSize));
+        return Result.success( new PageResult<>(comments, total, pageSize));
     }
 
     @Override
@@ -612,5 +612,16 @@ public class VideosServerImpl extends ServiceImpl<VideosMapper, Videos> implemen
             List<Reply> replys=commentReplyMapper.getCommentReply(commentId,pageSize,lastTime);
             log.info("{}",replys);
             return Result.success(replys);
+    }
+
+    @Override
+    public long countNewVideosByTimeRange(Date startTime, Date endTime) {
+
+        QueryWrapper<Videos> queryWrapper = new QueryWrapper<>();
+
+        queryWrapper.between("created_at", startTime, endTime)
+                .eq("status", 0);
+
+        return this.baseMapper.selectCount(queryWrapper);
     }
 }
