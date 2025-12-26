@@ -9,13 +9,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MyBatisPlusConfig {
 
-
+    /**
+     * 注册分页插件
+     */
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-        /**
-         * 注册分页插件
-         */
+
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
 
         return interceptor;

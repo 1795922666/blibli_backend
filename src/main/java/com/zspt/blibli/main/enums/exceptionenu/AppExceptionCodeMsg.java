@@ -39,7 +39,9 @@ public enum AppExceptionCodeMsg {
     COIN_AMOUNT_INVALID(20001, "投币金额不合法", HttpStatus.BAD_REQUEST),
     COMMENT_NOT_FOUND(20101, "评论不存在", HttpStatus.BAD_REQUEST),
     COMMENT_USER_NOT_FOUND(20102, "评论用户不存在", HttpStatus.NOT_FOUND),
-    OPERATION_TOO_FREQUENT(42900, "操作过于频繁，请稍后再试", HttpStatus.TOO_MANY_REQUESTS);
+    OPERATION_TOO_FREQUENT(42900, "操作过于频繁，请稍后再试", HttpStatus.TOO_MANY_REQUESTS),
+    PARAM_ERROR(40002, "参数错误", HttpStatus.BAD_REQUEST);
+
 
     ;
 

@@ -29,7 +29,7 @@ public class CommentReply {
 
     private int likeCount;
 
-    private byte status;
+    private byte status; //0待审核 1通过 2删除 3被举报
 
     private LocalDateTime createTime;
 
