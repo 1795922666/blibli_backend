@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zspt.blibli.account.controller.vo.UserInfoVo;
+import com.zspt.blibli.account.controller.vo.UserVo;
 import com.zspt.blibli.account.mapper.UserMapper;
 import com.zspt.blibli.account.mapper.domin.User;
 import com.zspt.blibli.account.server.UserServer;
@@ -24,6 +25,8 @@ import com.zspt.blibli.main.exception.Appexception;
 import com.zspt.blibli.main.mapper.domin.Follow;
 import com.zspt.blibli.main.server.impl.FollowServerImpl;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -68,7 +71,7 @@ public class UserServerImpl extends ServiceImpl<UserMapper, User> implements Use
 
 
     @Override
-    public Result login(String username, String password) {
+    public Result login(String username, String password, HttpSession session) {
         PasswordEncoder passwordEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
         User user = lambdaQuery().eq(User::getUserName, username).one();
 //        判断用户状态
@@ -79,16 +82,15 @@ public class UserServerImpl extends ServiceImpl<UserMapper, User> implements Use
         boolean matches = passwordEncoder.matches(password, user.getPassword());
         if(!matches)throw  new Appexception(AppExceptionCodeMsg.AUTH_FAILED);
 
-
         StpUtil.login(user.getId());
         return Result.success("登陆成功",null);
     }
 
     @Override
-    public Result getByToken(String tokenValue) {
+    public Result getByToken(String tokenValue,HttpSession session) {
         Object loginIdByToken =  StpUtil.getLoginIdByToken(tokenValue);
        if(loginIdByToken==null)  throw new Appexception(AppExceptionCodeMsg.LOGIN_EXPIRED);
-       return Result.success("登陆成功",null);
+       return Result.success("登陆成功",loginIdByToken);
     }
 
     @Override
@@ -302,7 +304,6 @@ public class UserServerImpl extends ServiceImpl<UserMapper, User> implements Use
         int likeCount = getBaseMapper().getLikeCount(id);
         userInfo.setLikeCount(likeCount);
         updateUserCache(userInfo, key);
-
         return userInfo;
     }
 

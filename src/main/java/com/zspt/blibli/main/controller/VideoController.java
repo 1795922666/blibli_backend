@@ -194,11 +194,11 @@ public class VideoController {
      * 获取稿件
      * @return
      */
-    @GetMapping("contribution")
-    public Result getContribution() {
+    @GetMapping("contribution/{id}")
+    public Result getContribution(@PathVariable String id) {
         try {
-            long loginUserId = StpUtil.getLoginIdAsLong();
-            List<VideoList> videoList = videoServerImpl.getBaseMapper().getVideoList(loginUserId);
+            long vid = Long.parseLong(id);
+            List<VideoList> videoList = videoServerImpl.getBaseMapper().getVideoList(vid);
             return Result.success(videoList);
         }catch (Exception e) {
             throw new Appexception(AppExceptionCodeMsg.USER_NOT_FOUND);

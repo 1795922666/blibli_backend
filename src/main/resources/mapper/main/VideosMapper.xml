@@ -13,7 +13,7 @@
                  LEFT JOIN bli_user u ON v.user_id = u.id
                  LEFT JOIN bli_videos_files vf ON v.video_id = vf.video_id
         WHERE
-            v.STATUS = 0
+            v.STATUS = 1
     </select>
     <select id="getVideosInfo" resultType="com.zspt.blibli.main.controller.vo.VideoInfo">
         SELECT
@@ -36,7 +36,7 @@
                  LEFT JOIN bli_user u ON v.user_id = u.id
                  LEFT JOIN bli_videos_files vf ON v.video_id = vf.video_id
         WHERE
-            v.user_id=#{userId} AND v.STATUS = 0
+            v.user_id=#{userId} AND v.STATUS = 1
 
     </select>
 

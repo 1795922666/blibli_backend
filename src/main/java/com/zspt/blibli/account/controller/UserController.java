@@ -8,9 +8,12 @@ import com.zspt.blibli.account.server.impl.UserServerImpl;
 import com.zspt.blibli.common.vo.Result;
 import com.zspt.blibli.main.enums.exceptionenu.AppExceptionCodeMsg;
 import com.zspt.blibli.main.exception.Appexception;
+import com.zspt.blibli.main.server.MessageServer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,18 +32,21 @@ public class UserController {
     @Resource
     private UserServerImpl userServer;
 
+    @Resource
+    private MessageServer messageServer;
+
     @Operation( summary = "用户登陆")
     @PostMapping("/login")
-    public Result login(@RequestBody UserParam user) {
+    public Result login(@RequestBody UserParam user, HttpSession session ) {
         log.info(user.getUserName()+"用户登陆");
-        return  userServer.login(user.getUserName(),user.getPassword());
+        return  userServer.login(user.getUserName(),user.getPassword(),session);
     }
 
     @Operation(summary = "token登陆")
     @GetMapping("/token")
-    public Result token() {
+    public Result token(HttpSession session) {
         String tokenValue = StpUtil.getTokenValue();
-        return  userServer.getByToken(tokenValue);
+        return  userServer.getByToken(tokenValue,session);
     }
 
     @Operation(summary = "退出登陆")
@@ -52,11 +58,13 @@ public class UserController {
 
     @Operation(summary = "获取当前用户信息")
     @GetMapping("/userInfo")
-    public Result<UserVo> getUserInfo(){
+    public Result<UserVo> getUserInfo(HttpSession session){
         long loginIdAsLong = StpUtil.getLoginIdAsLong();
         User user = userServer.getById(loginIdAsLong);
         UserVo userVo = new UserVo();
         BeanUtils.copyProperties(user,userVo);
+//        websock上线
+        session.setAttribute("userId", loginIdAsLong);
         return Result.success(userVo);
     }
 
@@ -114,5 +122,15 @@ public class UserController {
             throw new Appexception(AppExceptionCodeMsg.USER_NOT_FOUND);
         }
     }
-
+    @GetMapping("/history/increment")
+    public Result getIncrementChatHistory(
+            @RequestParam String contactId,
+            @RequestParam Long lastTime
+    ) {
+        try {
+            return Result.success(messageServer.getIncrementChatHistory(Long.valueOf(contactId), StpUtil.getLoginIdAsLong(), lastTime));
+        }catch (NumberFormatException e) {
+            throw new Appexception(AppExceptionCodeMsg.USER_NOT_FOUND);
+        }
+    }
 }

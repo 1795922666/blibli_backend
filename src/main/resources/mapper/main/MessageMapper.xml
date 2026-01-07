@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zspt.blibli.main.mapper.MessageMapper">
+    <select id="getMessagesAll" resultType="com.zspt.blibli.main.mapper.domin.Message">
+        SELECT
+            id,
+            from_user_id,
+            to_user_id,
+            content,
+            created_at,
+            is_read
+        FROM
+            bli_chat_records
+        WHERE
+           -- 条件1: 我发送的，对方接收的
+            (from_user_id = #{fUserId} AND to_user_id = #{toUserId})
+           -- 条件2: 对方发送的，我接收的
+           OR
+            (from_user_id = #{toUserId} AND to_user_id = #{fUserId})
+        ORDER BY
+            created_at ASC;
+    </select>
+</mapper>

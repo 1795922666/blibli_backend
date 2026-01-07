@@ -61,6 +61,7 @@
         FROM bli_comment_reply
         ) r ON c.id = r.pComment_id AND r.rn &lt;= #{replyCount} -- 获取回复数量
         WHERE c.video_id = #{videoId}
+        AND c.status !=0
         <if test="lastTime != null">
             AND c.create_time &lt; #{lastTime}
         </if>
