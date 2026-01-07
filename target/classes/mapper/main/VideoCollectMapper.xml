@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zspt.blibli.main.mapper.VideoCollectMapper">
+    <insert id="insertOrUpdates">
+        INSERT INTO bli_video_collect (video_id, user_id, status)
+        VALUES (#{videoId}, #{userId}, #{status})
+        ON DUPLICATE KEY UPDATE
+            status = VALUES(status)
+    </insert>
+</mapper>
